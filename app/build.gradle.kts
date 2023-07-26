@@ -48,6 +48,10 @@ android {
             if (keyPropsFile.exists()) {
                 signingConfig = signingConfigs.getByName("myConfig")
             }
+            ndk {
+                abiFilters.add("armeabi-v7a")
+                abiFilters.add("arm64-v8a")
+            }
         }
     }
 
@@ -56,14 +60,14 @@ android {
             reset()
             isEnable = true
             isUniversalApk = true  // If true, also generate a universal APK
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            include("armeabi-v7a", "arm64-v8a")
         }
     }
 
     android.applicationVariants.all {
         outputs.map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach {
-                val abi = it.getFilter(OutputFile.ABI) ?: "universal"
+                val abi = it.getFilter(OutputFile.ABI) ?: "armAll"
                 val fileName = "FQWeb_Frpc_v${defaultConfig.versionName}_$abi.apk"
                 it.outputFileName = fileName
             }
