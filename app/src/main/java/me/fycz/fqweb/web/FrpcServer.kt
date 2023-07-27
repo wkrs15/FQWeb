@@ -21,6 +21,10 @@ import java.io.File
  */
 class FrpcServer {
     private var myThread: Thread? = null
+
+    private var heartThread: Thread? = null
+
+    private var heartDuration: Long = 5 * 60 * 1000L
     val isAlive: Boolean
         get() = myThread?.isAlive == true
 
@@ -116,16 +120,25 @@ class FrpcServer {
                 .replace("{timestamp}", timestamp).replace("{domain}", domain)
         configFile.writeText(config)
         SPUtils.putString("publicDomain", domain)
-        Thread {
-            for (i in 1..retry) {
+        uploadDomain(domain)
+        callback()
+    }
+
+    private fun uploadDomain(domain: String) {
+        heartThread = Thread {
+            while (!isFailed && isAlive) {
                 try {
                     HttpUtils.doGet(currentServer!!.uploadDomainUrl!!.replace("{domain}", domain))
-                    break
                 } catch (e: Throwable) {
                     log(e)
                 }
+                kotlin.runCatching { Thread.sleep(heartDuration) }
             }
-        }.start()
-        callback()
+        }.apply {
+            isDaemon = true
+            name = "Heart thread"
+        }.also {
+            it.start()
+        }
     }
 }
