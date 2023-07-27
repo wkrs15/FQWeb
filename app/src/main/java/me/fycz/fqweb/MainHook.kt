@@ -25,7 +25,6 @@ import de.robv.android.xposed.IXposedHookZygoteInit
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_InitPackageResources
 import de.robv.android.xposed.callbacks.XC_LoadPackage
-import frpclib.Frpclib
 import me.fycz.fqweb.constant.Config
 import me.fycz.fqweb.utils.GlobalApp
 import me.fycz.fqweb.utils.NetworkUtils
@@ -42,7 +41,6 @@ import me.fycz.fqweb.utils.replaceMethod
 import me.fycz.fqweb.utils.setObjectField
 import me.fycz.fqweb.web.FrpcServer
 import me.fycz.fqweb.web.HttpServer
-import java.io.File
 import java.util.LinkedList
 
 
@@ -56,9 +54,11 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit, IXposedHookInitP
         lateinit var moduleRes: Resources
     }
 
+    private var isFrpcVersion: Boolean = BuildConfig.VERSION_NAME.contains("frpc")
+
     private lateinit var httpServer: HttpServer
 
-    private lateinit var frpcServer: FrpcServer
+    private var frpcServer: FrpcServer? = null
 
     private lateinit var modulePath: String
 
@@ -85,12 +85,13 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit, IXposedHookInitP
                     hookSetting(lpparam.classLoader)
                     hookUpdate(lpparam.classLoader)
                     httpServer = HttpServer(SPUtils.getInt("port", 9999))
-                    frpcServer = FrpcServer()
+                    if (isFrpcVersion) frpcServer = FrpcServer()
                     SPUtils.putString("publicDomain", "未获取")
                     if (!httpServer.isAlive && SPUtils.getBoolean("autoStart", false)) {
                         try {
                             httpServer.start()
-                            if (SPUtils.getBoolean("traversal", false)) frpcServer.start()
+                            if (isFrpcVersion && SPUtils.getBoolean("traversal", false))
+                                frpcServer?.start()
                         } catch (e: Throwable) {
                             log(e)
                         }
@@ -291,119 +292,126 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit, IXposedHookInitP
         linearlayout_7.addView(s_enable, layoutParams_9)
         linearlayout_0.addView(linearlayout_7, layoutParams_7)
 
-        val linearlayout_9 = LinearLayout(context)
-        val layoutParams_12 = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        linearlayout_9.setPadding(
-            dp2px(context, 10F),
-            dp2px(context, 10F),
-            dp2px(context, 10F),
-            dp2px(context, 10F)
-        )
-        linearlayout_9.orientation = LinearLayout.HORIZONTAL
-        val textview_10 = TextView(context)
-        val layoutParams_13 = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        textview_10.text = "内网穿透服务(Frp)："
-        textview_10.setTextColor(textColor)
-        textview_10.textSize = 16F
-        linearlayout_9.addView(textview_10, layoutParams_13)
-        val s_enable_2 = Switch(context).apply {
-            isChecked = SPUtils.getBoolean("traversal", false)
-            setOnClickListener {
-                if (isChecked) {
-                    AlertDialog.Builder(context)
-                        .setTitle("内网穿透风险警告和免责声明")
-                        .setMessage(
-                            Html.fromHtml(
-                                XposedHelpers.assetAsByteArray(
-                                    moduleRes,
-                                    "TraversalDisclaimer.html"
-                                ).inputStream().reader().readText()
+        var frpcEnable = SPUtils.getBoolean("traversal", false)
+
+        if (isFrpcVersion) {
+            val linearlayout_9 = LinearLayout(context)
+            val layoutParams_12 = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            linearlayout_9.setPadding(
+                dp2px(context, 10F),
+                dp2px(context, 10F),
+                dp2px(context, 10F),
+                dp2px(context, 10F)
+            )
+            linearlayout_9.orientation = LinearLayout.HORIZONTAL
+            val textview_10 = TextView(context)
+            val layoutParams_13 = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            textview_10.text = "内网穿透服务(Frp)："
+            textview_10.setTextColor(textColor)
+            textview_10.textSize = 16F
+            linearlayout_9.addView(textview_10, layoutParams_13)
+            val s_enable_2 = Switch(context).apply {
+                isChecked = SPUtils.getBoolean("traversal", false)
+                setOnClickListener {
+                    if (isChecked) {
+                        AlertDialog.Builder(context)
+                            .setTitle("内网穿透风险警告和免责声明")
+                            .setMessage(
+                                Html.fromHtml(
+                                    XposedHelpers.assetAsByteArray(
+                                        moduleRes,
+                                        "TraversalDisclaimer.html"
+                                    ).inputStream().reader().readText()
+                                )
                             )
-                        )
-                        .setCancelable(false)
-                        .setPositiveButton("我已阅读并同意") { _, _ ->
-                            isChecked = true
-                        }.setNegativeButton("不同意") { _, _ ->
-                            isChecked = false
-                        }.show()
+                            .setCancelable(false)
+                            .setPositiveButton("我已阅读并同意") { _, _ ->
+                                isChecked = true
+                                frpcEnable = true
+                            }.setNegativeButton("不同意") { _, _ ->
+                                isChecked = false
+                                frpcEnable = false
+                            }.show()
+                    } else {
+                        frpcEnable = false
+                    }
                 }
             }
-        }
-        val layoutParams_14 = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        linearlayout_9.addView(s_enable_2, layoutParams_14)
-        linearlayout_0.addView(linearlayout_9, layoutParams_12)
-
-        if (SPUtils.getBoolean("traversal", false)) {
-            val linearlayout_10 = LinearLayout(context)
-            val layoutParams_15 = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            linearlayout_10.setPadding(
-                dp2px(context, 10F),
-                dp2px(context, 10F),
-                dp2px(context, 10F),
-                dp2px(context, 10F)
-            )
-            linearlayout_10.orientation = LinearLayout.HORIZONTAL
-            val textview_11 = TextView(context)
-            val layoutParams_16 = LinearLayout.LayoutParams(
+            val layoutParams_14 = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
-            textview_11.text =
-                "内网穿透服务状态：${if (frpcServer.isAlive) "已开启" else if (frpcServer.isFailed) "启动失败" else "未开启"}"
-            textview_11.textSize = 16F
-            linearlayout_10.addView(textview_11, layoutParams_16)
-            linearlayout_0.addView(linearlayout_10, layoutParams_15)
+            linearlayout_9.addView(s_enable_2, layoutParams_14)
+            linearlayout_0.addView(linearlayout_9, layoutParams_12)
 
-            //公网地址
-            val linearlayout_11 = LinearLayout(context)
-            val layoutParams_17 = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            linearlayout_11.setPadding(
-                dp2px(context, 10F),
-                dp2px(context, 10F),
-                dp2px(context, 10F),
-                dp2px(context, 10F)
-            )
-            linearlayout_11.orientation = LinearLayout.HORIZONTAL
+            if (SPUtils.getBoolean("traversal", false)) {
+                val linearlayout_10 = LinearLayout(context)
+                val layoutParams_15 = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                linearlayout_10.setPadding(
+                    dp2px(context, 10F),
+                    dp2px(context, 10F),
+                    dp2px(context, 10F),
+                    dp2px(context, 10F)
+                )
+                linearlayout_10.orientation = LinearLayout.HORIZONTAL
+                val textview_11 = TextView(context)
+                val layoutParams_16 = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                textview_11.text =
+                    "内网穿透服务状态：${if (frpcServer?.isAlive == true) "已开启" else if (frpcServer?.isFailed == true) "启动失败" else "未开启"}"
+                textview_11.textSize = 16F
+                linearlayout_10.addView(textview_11, layoutParams_16)
+                linearlayout_0.addView(linearlayout_10, layoutParams_15)
 
-            val textview_12 = TextView(context)
-            val layoutParams_18 = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            textview_12.text = "公网地址："
-            textview_12.setTextColor(textColor)
-            textview_12.textSize = 16F
-            linearlayout_11.addView(textview_12, layoutParams_18)
-            val et_domain = EditText(context).apply {
-                isSingleLine = true
+                //公网地址
+                val linearlayout_11 = LinearLayout(context)
+                val layoutParams_17 = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                linearlayout_11.setPadding(
+                    dp2px(context, 10F),
+                    dp2px(context, 10F),
+                    dp2px(context, 10F),
+                    dp2px(context, 10F)
+                )
+                linearlayout_11.orientation = LinearLayout.HORIZONTAL
+
+                val textview_12 = TextView(context)
+                val layoutParams_18 = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                textview_12.text = "公网地址："
+                textview_12.setTextColor(textColor)
+                textview_12.textSize = 16F
+                linearlayout_11.addView(textview_12, layoutParams_18)
+                val et_domain = EditText(context).apply {
+                    isSingleLine = true
+                }
+                val layoutParams_19 = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                et_domain.setText(SPUtils.getString("publicDomain", "未获取"))
+                et_domain.setTextColor(textColor)
+                et_domain.textSize = 16F
+                linearlayout_11.addView(et_domain, layoutParams_19)
+
+                linearlayout_0.addView(linearlayout_11, layoutParams_17)
             }
-            val layoutParams_19 = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            et_domain.setText(SPUtils.getString("publicDomain", "未获取"))
-            et_domain.setTextColor(textColor)
-            et_domain.textSize = 16F
-            linearlayout_11.addView(et_domain, layoutParams_19)
-
-            linearlayout_0.addView(linearlayout_11, layoutParams_17)
         }
-
 
         val linearlayout_8 = LinearLayout(context)
         val layoutParams_10 = LinearLayout.LayoutParams(
@@ -472,12 +480,14 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit, IXposedHookInitP
                     settingView.setObjectField(Config.settingItemStrFieldName, "未开启")
                     adapter?.callMethod("notifyItemChanged", 0)
                 }
-                if (s_enable_2.isChecked) {
-                    frpcServer.start(true)
-                    SPUtils.putBoolean("traversal", true)
-                } else {
-                    SPUtils.putBoolean("traversal", false)
-                    ToastUtils.toast("内网穿透服务配置将在重启应用后生效")
+                if (isFrpcVersion) {
+                    if (frpcEnable) {
+                        frpcServer?.start(true)
+                        SPUtils.putBoolean("traversal", true)
+                    } else {
+                        SPUtils.putBoolean("traversal", false)
+                        ToastUtils.toast("内网穿透服务配置将在重启应用后生效")
+                    }
                 }
             }.create().show()
     }

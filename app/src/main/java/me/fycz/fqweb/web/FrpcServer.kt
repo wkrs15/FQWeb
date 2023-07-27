@@ -1,10 +1,6 @@
 package me.fycz.fqweb.web
 
-import android.widget.Toast
-import de.robv.android.xposed.XposedHelpers
-import frpclib.Frpclib
 import me.fycz.fqweb.BuildConfig
-import me.fycz.fqweb.MainHook.Companion.moduleRes
 import me.fycz.fqweb.constant.Config.TRAVERSAL_CONFIG_URL
 import me.fycz.fqweb.entity.NATTraversalConfig
 import me.fycz.fqweb.entity.ServerConfig
@@ -13,9 +9,10 @@ import me.fycz.fqweb.utils.HttpUtils
 import me.fycz.fqweb.utils.JsonUtils
 import me.fycz.fqweb.utils.SPUtils
 import me.fycz.fqweb.utils.ToastUtils
+import me.fycz.fqweb.utils.callStaticMethod
+import me.fycz.fqweb.utils.findClass
 import me.fycz.fqweb.utils.log
 import java.io.File
-import java.lang.RuntimeException
 
 /**
  * @author fengyue
@@ -45,7 +42,8 @@ class FrpcServer {
         initConfig() {
             myThread = Thread {
                 try {
-                    Frpclib.run(configFile.absolutePath)
+                    "frpclib.Frpclib".findClass(javaClass.classLoader)
+                        .callStaticMethod("run", configFile.absolutePath)
                 } catch (e: Throwable) {
                     log(e)
                     ToastUtils.toastLong("内网穿透服务启动失败\n${e.localizedMessage}")

@@ -1,5 +1,3 @@
-import com.android.build.OutputFile
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -20,7 +18,7 @@ android {
         minSdk = 24
         targetSdk = 33
         versionCode = 142
-        versionName = "1.4.2-frpc-debug"
+        versionName = "1.4.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,6 +46,31 @@ android {
             if (keyPropsFile.exists()) {
                 signingConfig = signingConfigs.getByName("myConfig")
             }
+        }
+    }
+
+    android.applicationVariants.all {
+        val isFrpc = versionName.contains("frpc")
+        val fileName = "FQWeb_v${if (isFrpc) versionName + "_armAll" else versionName}.apk"
+        outputs.map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach {
+                it.outputFileName = fileName
+            }
+    }
+
+    flavorDimensions.add("mode")
+
+    productFlavors {
+        create("app") {
+            dimension = "mode"
+            manifestPlaceholders["APP_CHANNEL_VALUE"] = "app"
+        }
+
+        create("frpc") {
+            dimension = "mode"
+            versionNameSuffix = "-frpc"
+            manifestPlaceholders["APP_CHANNEL_VALUE"] = "frpc"
+
             ndk {
                 abiFilters.add("armeabi-v7a")
                 abiFilters.add("arm64-v8a")
@@ -55,28 +78,11 @@ android {
         }
     }
 
-    splits {
-        abi {
-            reset()
-            isEnable = true
-            isUniversalApk = true  // If true, also generate a universal APK
-            include("armeabi-v7a", "arm64-v8a")
-        }
-    }
-
-    android.applicationVariants.all {
-        outputs.map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
-            .forEach {
-                val abi = it.getFilter(OutputFile.ABI) ?: "armAll"
-                val fileName = "FQWeb_Frpc_v${defaultConfig.versionName}_$abi.apk"
-                it.outputFileName = fileName
-            }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -89,7 +95,7 @@ dependencies {
     implementation("org.nanohttpd:nanohttpd:2.3.1")
 
     //frpc
-    implementation(files("libs/frpclib.aar"))
+    "frpcImplementation"(files("libs/frpclib.aar"))
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
