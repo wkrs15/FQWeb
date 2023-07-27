@@ -361,7 +361,7 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit, IXposedHookInitP
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
             textview_11.text =
-                "内网穿透服务状态：${if (frpcServer.isAlive()) "已开启" else "未开启"}"
+                "内网穿透服务状态：${if (frpcServer.isAlive) "已开启" else if (frpcServer.isFailed) "启动失败" else "未开启"}"
             textview_11.textSize = 16F
             linearlayout_10.addView(textview_11, layoutParams_16)
             linearlayout_0.addView(linearlayout_10, layoutParams_15)

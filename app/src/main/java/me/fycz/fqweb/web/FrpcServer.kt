@@ -24,6 +24,10 @@ import java.lang.RuntimeException
  */
 class FrpcServer {
     private var myThread: Thread? = null
+    val isAlive: Boolean
+        get() = myThread?.isAlive == true
+
+    var isFailed = false
 
     private val retry: Int = 1
 
@@ -43,12 +47,10 @@ class FrpcServer {
                 try {
                     Frpclib.run(configFile.absolutePath)
                 } catch (e: Throwable) {
-                    Toast.makeText(
-                        GlobalApp.application,
-                        "Frpc服务启动失败\n${e.localizedMessage}",
-                        Toast.LENGTH_SHORT
-                    ).show()
                     log(e)
+                    ToastUtils.toastLong("内网穿透服务启动失败\n${e.localizedMessage}")
+                    SPUtils.putString("publicDomain", "未获取")
+                    isFailed = true
                 }
             }.apply {
                 isDaemon = true
@@ -111,10 +113,9 @@ class FrpcServer {
         }
         val timestamp = System.currentTimeMillis().toString()
         val domain = currentServer!!.customDomain!!.replace("{timestamp}", timestamp)
-        val config = currentServer!!.frpcConfig!!
-            .replace("{port}", SPUtils.getInt("port", 9999).toString())
-            .replace("{timestamp}", timestamp)
-            .replace("{domain}", domain)
+        val config =
+            currentServer!!.frpcConfig!!.replace("{port}", SPUtils.getInt("port", 9999).toString())
+                .replace("{timestamp}", timestamp).replace("{domain}", domain)
         configFile.writeText(config)
         SPUtils.putString("publicDomain", domain)
         Thread {
@@ -128,9 +129,5 @@ class FrpcServer {
             }
         }.start()
         callback()
-    }
-
-    fun isAlive(): Boolean {
-        return myThread?.isAlive == true
     }
 }
