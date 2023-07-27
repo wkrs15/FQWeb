@@ -1,3 +1,5 @@
+import com.android.build.OutputFile
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -51,11 +53,21 @@ android {
 
     android.applicationVariants.all {
         val isFrpc = versionName.contains("frpc")
-        val fileName = "FQWeb_v${if (isFrpc) versionName + "_armAll" else versionName}.apk"
         outputs.map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach {
+                val abi = if (isFrpc) "_" + (it.getFilter(OutputFile.ABI) ?: "armAll") else ""
+                val fileName = "FQWeb_v$versionName$abi.apk"
                 it.outputFileName = fileName
             }
+    }
+
+    splits {
+        abi {
+            reset()
+            isEnable = project.hasProperty("frpc")
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = true
+        }
     }
 
     flavorDimensions.add("mode")

@@ -34,16 +34,26 @@ jobs:
         uses: gradle/gradle-build-action@v2
       - name: Build With Gradle
         run: |
-          echo "开始编译打包"
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --build-cache --parallel --daemon --warning-mode all
+          ./gradlew :app:assembleAppRelease --build-cache --parallel --daemon --warning-mode all
+          ./gradlew -Pfrpc :app:assembleFrpcRelease --build-cache --parallel --daemon --warning-mode all
       - name: Upload Artifact(app)
         uses: actions/upload-artifact@v3
         with:
           name: FQWeb
-          path: ${{ github.workspace }}/app/build/outputs/apk/app/*/FQWeb*.apk
-      - name: Upload Artifact(frpc)
+          path: ${{ github.workspace }}/app/build/outputs/apk/app/release/FQWeb*.apk
+      - name: Upload Artifact(frpc-arm64)
         uses: actions/upload-artifact@v3
         with:
-          name: FQWeb-frpc
-          path: ${{ github.workspace }}/app/build/outputs/apk/frpc/*/FQWeb*.apk
+          name: FQWeb-frpc-arm64
+          path: ${{ github.workspace }}/app/build/outputs/apk/frpc/release/FQWeb*arm64-v8a.apk
+      - name: Upload Artifact(frpc-arm32)
+        uses: actions/upload-artifact@v3
+        with:
+          name: FQWeb-frpc-arm32
+          path: ${{ github.workspace }}/app/build/outputs/apk/frpc/release/FQWeb*armeabi-v7a.apk
+      - name: Upload Artifact(frpc-armAll)
+        uses: actions/upload-artifact@v3
+        with:
+          name: FQWeb-frpc-armAll
+          path: ${{ github.workspace }}/app/build/outputs/apk/frpc/release/FQWeb*armAll.apk
