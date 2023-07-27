@@ -24,7 +24,7 @@ class FrpcServer {
 
     private var heartThread: Thread? = null
 
-    private var heartDuration: Long = 30 * 60 * 1000L
+    private var heartDuration: Long = 30 * 1000L
     val isAlive: Boolean
         get() = myThread?.isAlive == true
 
@@ -126,6 +126,7 @@ class FrpcServer {
 
     private fun uploadDomain(domain: String) {
         heartThread = Thread {
+            Thread.sleep(5000)
             while (!isFailed && isAlive) {
                 try {
                     HttpUtils.doGet(currentServer!!.uploadDomainUrl!!.replace("{domain}", domain))
