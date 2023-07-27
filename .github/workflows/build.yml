@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - '.idea/**'
+      - '!.github/workflows/**'
 
 jobs:
   build:
@@ -32,8 +37,13 @@ jobs:
           echo "开始编译打包"
           chmod +x gradlew
           ./gradlew :app:assembleRelease --build-cache --parallel --daemon --warning-mode all
-      - name: Upload Artifact
+      - name: Upload Artifact(app)
         uses: actions/upload-artifact@v3
         with:
           name: FQWeb
-          path: ${{ github.workspace }}/app/build/outputs/apk/*/FQWeb*.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/app/*/FQWeb*.apk
+      - name: Upload Artifact(frpc)
+        uses: actions/upload-artifact@v3
+        with:
+          name: FQWeb-frpc
+          path: ${{ github.workspace }}/app/build/outputs/apk/frpc/*/FQWeb*.apk
