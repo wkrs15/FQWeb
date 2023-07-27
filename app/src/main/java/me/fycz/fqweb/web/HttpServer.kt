@@ -1,7 +1,6 @@
 package me.fycz.fqweb.web
 
 import android.graphics.Bitmap
-import de.robv.android.xposed.XposedHelpers
 import fi.iki.elonen.NanoHTTPD
 import me.fycz.fqweb.utils.JsonUtils
 import me.fycz.fqweb.web.controller.DragonController
@@ -26,19 +25,13 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
         try {
             if (session.method == Method.GET) {
                 val parameters = session.parameters
-                returnData = when {
-                    uri.endsWith("/search") -> DragonController.search(parameters)
-                    uri.endsWith("/info") -> DragonController.info(parameters)
-                    uri.endsWith("/catalog") -> DragonController.catalog(parameters)
-                    uri.endsWith("/content") -> DragonController.content(parameters)
-                    uri.endsWith("/reading/bookapi/bookmall/cell/change/v1/") -> DragonController.bookMall(
-                        parameters
-                    )
-
-                    uri.endsWith("/reading/bookapi/new_category/landing/v/") -> DragonController.newCategory(
-                        parameters
-                    )
-
+                returnData = when (uri) {
+                    "/search" -> DragonController.search(parameters)
+                    "/info" -> DragonController.info(parameters)
+                    "/catalog" -> DragonController.catalog(parameters)
+                    "/content" -> DragonController.content(parameters)
+                    "/reading/bookapi/bookmall/cell/change/v1/" -> DragonController.bookMall(parameters)
+                    "/reading/bookapi/new_category/landing/v/" -> DragonController.newCategory(parameters)
                     else -> null
                 }
             }/* else if (session.method == Method.POST) {
@@ -48,11 +41,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                 val postBody = files["postData"]
             }*/
             if (returnData == null) {
-                return newChunkedResponse(
-                    Response.Status.NOT_FOUND,
-                    MIME_HTML,
-                    defaultPage.byteInputStream()
-                )
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_HTML, defaultPage)
             }
             val response = if (returnData.data is Bitmap) {
                 val outputStream = ByteArrayOutputStream()

@@ -30,6 +30,10 @@ class FrpcServer {
 
     var isFailed = false
 
+    var status: String = "未启动"
+
+    var domain: String = "未获取"
+
     private val retry: Int = 1
 
     var traversalConfig: NATTraversalConfig? = null
@@ -51,14 +55,15 @@ class FrpcServer {
                 } catch (e: Throwable) {
                     log(e)
                     ToastUtils.toastLong("内网穿透服务启动失败\n${e.localizedMessage}")
-                    SPUtils.putString("publicDomain", "未获取")
                     isFailed = true
+                    status =  "启动失败"
                 }
             }.apply {
                 isDaemon = true
                 name = "Frp Client"
             }.also {
                 it.start()
+                status = "正在启动"
             }
         }
     }
@@ -72,15 +77,15 @@ class FrpcServer {
                     if (json.isEmpty()) throw RuntimeException("json数据为空")
                     traversalConfig = JsonUtils.fromJson(json, NATTraversalConfig::class.java)
                     if (traversalConfig?.enable != true) {
-                        ToastUtils.toast("内网穿透服务已关闭")
+                        ToastUtils.toastLong("内网穿透服务已关闭")
                         return@Thread
                     }
                     if (BuildConfig.VERSION_CODE < traversalConfig!!.minVersion!!) {
-                        ToastUtils.toast("当前番茄Web版本过低，已不支持内网穿透服务")
+                        ToastUtils.toastLong("当前番茄Web版本过低，已不支持内网穿透服务")
                         return@Thread
                     }
                     if (traversalConfig!!.servers.isNullOrEmpty()) {
-                        ToastUtils.toast("当前没有可用的内网穿透服务")
+                        ToastUtils.toastLong("当前没有可用的内网穿透服务")
                         return@Thread
                     }
                     throwable = null
@@ -91,7 +96,7 @@ class FrpcServer {
                 }
             }
             if (throwable != null) {
-                ToastUtils.toast("无法获取内网穿透服务配置，请更新番茄Web到最新版后重试\n${throwable.localizedMessage}")
+                ToastUtils.toastLong("无法获取内网穿透服务配置，请更新番茄Web到最新版后重试\n${throwable.localizedMessage}")
                 return@Thread
             }
             val selectServer = SPUtils.getString("selectServer")
@@ -110,28 +115,30 @@ class FrpcServer {
 
     private fun writeConfig(callback: () -> Unit) {
         if (currentServer == null) {
-            ToastUtils.toast("当前没有可用的内网穿透服务")
+            ToastUtils.toastLong("当前没有可用的内网穿透服务")
             return
         }
         val timestamp = System.currentTimeMillis().toString()
-        val domain = currentServer!!.customDomain!!.replace("{timestamp}", timestamp)
+        domain = currentServer!!.customDomain!!.replace("{timestamp}", timestamp)
         val config =
             currentServer!!.frpcConfig!!.replace("{port}", SPUtils.getInt("port", 9999).toString())
                 .replace("{timestamp}", timestamp).replace("{domain}", domain)
         configFile.writeText(config)
-        SPUtils.putString("publicDomain", domain)
-        uploadDomain(domain)
+        uploadDomain()
         callback()
     }
 
-    private fun uploadDomain(domain: String) {
+    private fun uploadDomain() {
         heartThread = Thread {
             Thread.sleep(5000)
             while (!isFailed && isAlive) {
-                try {
+                status = try {
+                    HttpUtils.doGet("http://$domain/content")
                     HttpUtils.doGet(currentServer!!.uploadDomainUrl!!.replace("{domain}", domain))
+                    "在线"
                 } catch (e: Throwable) {
                     log(e)
+                    "离线"
                 }
                 kotlin.runCatching { Thread.sleep(heartDuration) }
             }
