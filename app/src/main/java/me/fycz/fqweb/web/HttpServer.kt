@@ -3,7 +3,6 @@ package me.fycz.fqweb.web
 import android.graphics.Bitmap
 import de.robv.android.xposed.XposedHelpers
 import fi.iki.elonen.NanoHTTPD
-import me.fycz.fqweb.MainHook.Companion.moduleRes
 import me.fycz.fqweb.utils.JsonUtils
 import me.fycz.fqweb.web.controller.DragonController
 import java.io.ByteArrayInputStream
@@ -15,6 +14,10 @@ import java.io.ByteArrayOutputStream
  * @description
  */
 class HttpServer(port: Int) : NanoHTTPD(port) {
+
+    private val defaultPage =
+        "<!DOCTYPE html>\n<html>\n<head>\n    <title>Not Found</title>\n    <style>\n    body {\n        width: 35em;\n        margin: 0 auto;\n        font-family: Tahoma, Verdana, Arial, sans-serif;\n    }\n\n    </style>\n</head>\n<body>\n<h1><a href=\"https://github.com/fengyuecanzhu/FQWeb\">FQWeb</a>: 404 Not Found.</h1>\n<p>Sorry, the page you are looking for does not exist.</p>\n<p>The server is powered by <a href=\"https://github.com/fengyuecanzhu/FQWeb\">FQWeb</a>.</p>\n<p><em>Faithfully yours, FQWeb.</em></p>\n</body>\n</html>"
+
     override fun serve(session: IHTTPSession): Response {
         var returnData: ReturnData? = null
         val ct = ContentType(session.headers["content-type"]).tryUTF8()
@@ -28,8 +31,14 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                     uri.endsWith("/info") -> DragonController.info(parameters)
                     uri.endsWith("/catalog") -> DragonController.catalog(parameters)
                     uri.endsWith("/content") -> DragonController.content(parameters)
-                    uri.endsWith("/reading/bookapi/bookmall/cell/change/v1/") -> DragonController.bookMall(parameters)
-                    uri.endsWith("/reading/bookapi/new_category/landing/v/") -> DragonController.newCategory(parameters)
+                    uri.endsWith("/reading/bookapi/bookmall/cell/change/v1/") -> DragonController.bookMall(
+                        parameters
+                    )
+
+                    uri.endsWith("/reading/bookapi/new_category/landing/v/") -> DragonController.newCategory(
+                        parameters
+                    )
+
                     else -> null
                 }
             }/* else if (session.method == Method.POST) {
@@ -42,7 +51,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                 return newChunkedResponse(
                     Response.Status.NOT_FOUND,
                     MIME_HTML,
-                    XposedHelpers.assetAsByteArray(moduleRes, "404.html").inputStream()
+                    defaultPage.byteInputStream()
                 )
             }
             val response = if (returnData.data is Bitmap) {
