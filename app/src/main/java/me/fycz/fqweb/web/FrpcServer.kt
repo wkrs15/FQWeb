@@ -130,7 +130,7 @@ class FrpcServer {
 
     private fun uploadDomain() {
         heartThread = Thread {
-            Thread.sleep(5000)
+            Thread.sleep(1000)
             while (!isFailed && isAlive) {
                 status = try {
                     HttpUtils.doGet("http://$domain/content")
