@@ -106,16 +106,16 @@ class MainHook : IXposedHookLoadPackage {
                 "a",
                 Config.settingRecyclerAdapterClz.findClass(classLoader)
             ) {
-                adapter = it.thisObject.getObjectField("b")
+                adapter = it.thisObject.getObjectField(Config.settingAdapterFiledName)
                 val list = it.result as LinkedList<Any>
-                if (list[0].getObjectField("e") != "Web服务") {
+                if (list[0].getObjectField(Config.settingItemStrFieldName) != "Web服务") {
                     val context = it.thisObject as Context
                     val setting =
                         Config.settingItemQSNClz.findClass(classLoader)
                             .new(context)
-                    setting.setObjectField("e", "Web服务")
+                    setting.setObjectField(Config.settingItemStrFieldName, "Web服务")
                     setting.setObjectField(
-                        Config.settingItemStrFieldName,
+                        Config.settingItemSubStrFieldName,
                         if (httpServer.isAlive)
                             "已开启(http://${NetworkUtils.getLocalIPAddress()?.hostAddress ?: "localhost"}:${
                                 SPUtils.getInt(
@@ -136,7 +136,7 @@ class MainHook : IXposedHookLoadPackage {
                 Int::class.java
             ) {
                 val context = (it.args[0] as View).context
-                if (it.args[1].getObjectField("e") == "Web服务") {
+                if (it.args[1].getObjectField(Config.settingItemStrFieldName) == "Web服务") {
                     if (!SPUtils.getBoolean("disclaimer", false)) {
                         AlertDialog.Builder(context)
                             .setTitle("免责声明")
@@ -433,7 +433,7 @@ class MainHook : IXposedHookLoadPackage {
                     try {
                         restartServe()
                         settingView.setObjectField(
-                            Config.settingItemStrFieldName,
+                            Config.settingItemSubStrFieldName,
                             "已开启(http://${NetworkUtils.getLocalIPAddress()?.hostAddress ?: "localhost"}:${
                                 SPUtils.getInt(
                                     "port",
@@ -449,7 +449,7 @@ class MainHook : IXposedHookLoadPackage {
                     }
                 } else {
                     httpServer.stop()
-                    settingView.setObjectField(Config.settingItemStrFieldName, "未开启")
+                    settingView.setObjectField(Config.settingItemSubStrFieldName, "未开启")
                     adapter?.callMethod("notifyItemChanged", 0)
                 }
                 if (isFrpcVersion) {

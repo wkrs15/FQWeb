@@ -14,6 +14,7 @@ import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LayoutInflated
 import java.lang.reflect.Field
 import java.lang.reflect.Member
+import java.lang.reflect.Method
 import java.util.*
 
 const val TAG = "FQWeb"
@@ -388,6 +389,12 @@ fun String.findClass(classLoader: ClassLoader?): Class<*> =
 
 fun String.findClassOrNull(classLoader: ClassLoader?): Class<*>? =
     XposedHelpers.findClassIfExists(this, classLoader)
+
+fun String.findMethod(classLoader: ClassLoader?, method: String?, vararg args: Any?): Method =
+    XposedHelpers.findMethodExact(this, classLoader, method, args)
+
+fun String.findMethodOrNull(classLoader: ClassLoader?, method: String?, vararg args: Any?): Method =
+    XposedHelpers.findMethodExact(this, classLoader, method, args)
 
 fun Class<*>.new(vararg args: Any?): Any = XposedHelpers.newInstance(this, *args)
 

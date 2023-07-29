@@ -4,6 +4,7 @@ import de.robv.android.xposed.XposedHelpers
 import me.fycz.fqweb.utils.GlobalApp
 import me.fycz.fqweb.utils.findClass
 import me.fycz.fqweb.utils.findClassOrNull
+import me.fycz.fqweb.utils.findMethod
 
 /**
  * @author fengyue
@@ -33,12 +34,18 @@ object Config {
 
     val settingRecyclerAdapterClz: String by lazy {
         when (versionCode) {
-            532 -> "com.dragon.read.base.recyler.c"
+            523 -> "com.dragon.read.base.recyler.c"
             57932 -> "com.dragon.read.recyler.c"
+            58732 -> "com.dragon.read.recyler.d"
             else -> {
+                val settingClz = "com.dragon.read.component.biz.impl.mine.settings.SettingsActivity"
                 kotlin.runCatching {
-                    "com.dragon.read.recyler.c".findClass(dragonClassloader)
+                    settingClz.findMethod(dragonClassloader, "a", "com.dragon.read.recyler.c")
                     return@lazy "com.dragon.read.recyler.c"
+                }
+                kotlin.runCatching {
+                    settingClz.findMethod(dragonClassloader, "a", "com.dragon.read.recyler.d")
+                    return@lazy "com.dragon.read.recyler.d"
                 }
                 "com.dragon.read.base.recyler.c"
             }
@@ -48,7 +55,7 @@ object Config {
     val settingItemQSNClz: String by lazy {
         val prefix = "com.dragon.read.component.biz.impl.mine.settings.a"
         when (versionCode) {
-            532 -> "$prefix.g"
+            523 -> "$prefix.g"
             57932 -> "$prefix.k"
             else -> {
                 kotlin.runCatching {
@@ -60,9 +67,23 @@ object Config {
         }
     }
 
+    val settingAdapterFiledName: String by lazy {
+        when {
+            versionCode < 58732 -> "b"
+            else -> "a"
+        }
+    }
+
     val settingItemStrFieldName: String by lazy {
+        when {
+            versionCode < 58732 -> "e"
+            else -> "d"
+        }
+    }
+
+    val settingItemSubStrFieldName: String by lazy {
         when (versionCode) {
-            532 -> "i"
+            523 -> "i"
             57932 -> "i"
             58332 -> "j"
             else -> {
@@ -80,7 +101,7 @@ object Config {
 
     val readerFullRequestClz: String by lazy {
         when (versionCode) {
-            532 -> "$rpcApiPackage.e"
+            523 -> "$rpcApiPackage.e"
             57932 -> "$rpcApiPackage.e"
             58332 -> "$rpcApiPackage.f"
             else -> {
@@ -103,7 +124,7 @@ object Config {
     val rpcApiPackage: String by lazy {
         val prefix = "com.dragon.read.rpc"
         when (versionCode) {
-            532 -> "$prefix.a"
+            523 -> "$prefix.a"
             57932 -> "$prefix.rpc"
             else -> {
                 kotlin.runCatching {
