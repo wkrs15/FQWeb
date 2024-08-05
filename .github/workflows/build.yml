@@ -1,14 +1,7 @@
 name: build
 
 on:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - '.idea/**'
-      - '!.github/workflows/**'
+  workflow_dispatch:
 
 jobs:
   build:
